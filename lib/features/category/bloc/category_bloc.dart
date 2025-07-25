@@ -68,8 +68,5 @@ class CategoryBloc extends Bloc<CategoryEvent, CategoryState> {
       }
     });
 
-    on<CategoryOpenCategoryEvent>((event, emit) async {
-      emit(CategoryOpenCategoryScreenState(event.category));
-    });
   }
 }

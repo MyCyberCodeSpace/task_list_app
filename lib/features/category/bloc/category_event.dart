@@ -1,5 +1,3 @@
-import 'package:task_list_app/features/category/model/category_model.dart';
-
 abstract class CategoryEvent {}
 
 class CategoryCreateNewCategoryEvent extends CategoryEvent {
@@ -22,8 +20,3 @@ class CategoryDeleteCategoryEvent extends CategoryEvent {
 }
 
 class CategoryLoadAllCategoriesEvent extends CategoryEvent {}
-
-class CategoryOpenCategoryEvent extends CategoryEvent {
-  final CategoryModel category;
-  CategoryOpenCategoryEvent(this.category);
-}

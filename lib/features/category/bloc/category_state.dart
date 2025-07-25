@@ -17,8 +17,3 @@ class CategoryLoadedListState extends CategoryState {
   final List<CategoryModel> categoryList;
   CategoryLoadedListState(this.categoryList);
 }
-
-class CategoryOpenCategoryScreenState extends CategoryState {
-  final CategoryModel category;
-  CategoryOpenCategoryScreenState(this.category);
-}
