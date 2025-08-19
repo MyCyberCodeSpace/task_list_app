@@ -4,7 +4,7 @@
 This application is built for **Android** only. The goal of this app is to help users manage their daily tasks. It supports the creation of tasks with **text, photos, and videos**, and stores all data in the **cloud using Firebase**.
 
 # Execution
-To start the software, clone this remote repository to your local repository. After that, it is recommended to make sure that everything is working in your environment with the **flutter doc** command. With your Android emulator running or a device connected to your computer/laptop via USB cable, run the **flutter run** command.
+To start the software, clone this remote repository to your local repository. After that, it is recommended to make sure that everything is working in your environment with the **flutter doctor** command. With your Android emulator running or a device connected to your computer/laptop via USB cable, run the **flutter run** command.
 
 # Useful information for understanding
 

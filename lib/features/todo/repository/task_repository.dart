@@ -29,12 +29,12 @@ class TaskRepository {
     var mediaUrl = '';
 
     if (mediaFile != null) {
-      final fileName = p.basename(mediaFile.path);
+      final fileName = p.basename(mediaFile.path);  // pega só o nome do arquivo
       final ref = storage.ref().child(
         'user_images/${user.uid}/$fileName',
-      );
-      await ref.putFile(mediaFile);
-      mediaUrl = await ref.getDownloadURL();
+      ); // cria a referência (pasta + nome do arquivo) onde o arquivo será salvo no Firebase Storage.
+      await ref.putFile(mediaFile);  // faz o upload do arquivo para o Storage nessa referência.
+      mediaUrl = await ref.getDownloadURL(); // mediaUrl = await ref.getDownloadURL()
     }
 
     final updatedCategoryName = await getCategoryNameById(categoryId);
@@ -123,7 +123,6 @@ class TaskRepository {
         .collection('user_tasks')
         .doc(task.id)
         .delete();
-
 
     final mediaUrl = task.mediaUrl;
     if (mediaUrl != '') {

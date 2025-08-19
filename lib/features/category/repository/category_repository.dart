@@ -29,11 +29,11 @@ class CategoryRepository {
     final user = auth.currentUser;
 
     await firestore
-        .collection('categories')
-        .doc(user!.uid)
-        .collection('user_categories')
-        .doc(id)
-        .update({'categoryName': newCategoryName});
+      .collection('categories')                   // coleção "categories"
+      .doc(user!.uid)                             // documento com o ID do usuário
+      .collection('user_categories')              // subcoleção "user_categories"
+      .doc(id)                                    // documento com o ID da categoria
+      .update({'categoryName': newCategoryName}); // atualiza o campo
   }
 
   Future<void> deleteCategory({required String id}) async {
