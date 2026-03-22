@@ -17,6 +17,13 @@ To start the software, clone this remote repository to your local repository. Af
 
 It is important that **if request.auth != null**  has been configured in the databases so that only authenticated users (logged in with Firebase Auth) can read or write.
 
+- For testing without using Firebase, update the constant in lib/main.dart to:
+const bool useLocalRepository = true;
+
+>- Test Credentials:
+>- Email: test@test.com
+>- Password: 123456
+
 ### External libraries and their purposes:
 
 - *flutter_native_splash* and *flutter_launcher_icons*: useful for streamlining the process of configuring the application icon and startup screen

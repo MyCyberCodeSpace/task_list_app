@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:task_list_app/features/category/screens/category_screen.dart';
-import 'package:task_list_app/features/todo/screens/todo_screen.dart';
+import 'package:task_list_app/features/category/presentation/screens/category_screen.dart';
+import 'package:task_list_app/features/todo/presentation/screens/todo_screen.dart';
 import 'package:page_transition/page_transition.dart';
 
 class MainBottomNavigator extends StatefulWidget {

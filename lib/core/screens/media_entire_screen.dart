@@ -30,20 +30,11 @@ class _MediaFullScreenState extends State<MediaFullScreen> {
           path.endsWith('.mov') ||
           path.endsWith('.avi');
       if (isVideoLocal) {
-        // Usando o  cascade operator para simplificar um pouco
         _videoControllerLocal =
             VideoPlayerController.file(widget.mediaFile!)
               ..initialize().then((_) {
                 setState(() {});
               });
-
-        // O _ dentro do then é só para ignorar
-        // _videoControllerLocal = VideoPlayerController.file(
-        //   widget.mediaFile!,
-        // );
-        // _videoControllerLocal.initialize().then((_) {
-        //   setState(() {});
-        // });
       }
     } else if (widget.mediaUrl != null) {
       final path = widget.mediaUrl!.toLowerCase().trim();
