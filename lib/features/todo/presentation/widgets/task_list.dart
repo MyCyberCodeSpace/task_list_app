@@ -5,7 +5,7 @@ import 'package:task_list_app/core/ui_helpers/main_alert_dialog.dart';
 import 'package:task_list_app/core/ui_helpers/main_snackbar_helper.dart';
 import 'package:task_list_app/features/todo/presentation/bloc/task_bloc.dart';
 import 'package:task_list_app/features/todo/presentation/bloc/task_state.dart';
-import 'package:task_list_app/features/todo/presentation/controller/task_list_controller.dart';
+import 'package:task_list_app/features/todo/presentation/controllers/task_list_controller.dart';
 import 'package:task_list_app/features/todo/presentation/screens/manage_task_screen.dart';
 import 'package:task_list_app/core/widgets/main_circular_progress.dart';
 import 'package:task_list_app/features/todo/presentation/widgets/task_list_widget.dart';

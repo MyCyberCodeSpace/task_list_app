@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:task_list_app/features/todo/data/status_data.dart';
+import 'package:task_list_app/features/todo/domain/enum/task_status_enum.dart';
 import 'package:task_list_app/features/todo/domain/model/todo_model.dart';
 
 class TaskListWidget extends StatelessWidget {
@@ -41,6 +41,7 @@ class TaskListWidget extends StatelessWidget {
                 padding: EdgeInsetsGeometry.all(8),
                 child: Column(
                   children: [
+                    
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisAlignment:
@@ -61,14 +62,16 @@ class TaskListWidget extends StatelessWidget {
                             ),
                           ),
                         ),
+
                         SizedBox(width: 20),
+
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 8,
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: statusMapColor[item.status],
+                            color: TaskStatus.fromLabel(item.status).color,
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
@@ -83,7 +86,9 @@ class TaskListWidget extends StatelessWidget {
                         ),
                       ],
                     ),
+
                     SizedBox(height: 20),
+
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [

@@ -1,19 +1,15 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:intl/intl.dart';
 import 'package:task_list_app/core/ui_helpers/main_snackbar_helper.dart';
 import 'package:task_list_app/features/category/presentation/bloc/category_bloc.dart';
 import 'package:task_list_app/features/category/presentation/bloc/category_event.dart';
 import 'package:task_list_app/features/category/presentation/bloc/category_state.dart';
 import 'package:task_list_app/features/todo/presentation/bloc/task_bloc.dart';
-import 'package:task_list_app/features/todo/presentation/bloc/task_event.dart';
 import 'package:task_list_app/features/todo/presentation/bloc/task_state.dart';
-import 'package:task_list_app/features/todo/data/status_data.dart';
+import 'package:task_list_app/features/todo/domain/enum/task_status_enum.dart';
 import 'package:task_list_app/core/ui_helpers/main_alert_dialog.dart';
 import 'package:task_list_app/core/widgets/user_media.dart';
-
-final formatter = DateFormat.yMd();
+import 'package:task_list_app/features/todo/presentation/controllers/new_task_controller.dart';
 
 class CreateNewTaskScreen extends StatefulWidget {
   const CreateNewTaskScreen({super.key});
@@ -24,55 +20,33 @@ class CreateNewTaskScreen extends StatefulWidget {
 }
 
 class _CreateNewTaskScreenState extends State<CreateNewTaskScreen> {
-  late final TaskBloc taskBloc;
-  late final CategoryBloc categoryBloc;
-  final _formKey = GlobalKey<FormState>();
-  late TextEditingController _titleController;
-  late TextEditingController _descriptionController;
-
-  var _inputTitle = '';
-  var _inputDescription = '';
-  String _selectStatus = statusList[0];
-  String? _selectCategory;
-  DateTime? _selectedDate;
-  File? _selectedMedia;
+  late final NewTaskController _controller;
+  late final CategoryBloc _categoryBloc;
 
   @override
   void initState() {
     super.initState();
-    taskBloc = context.read<TaskBloc>();
-    categoryBloc = context.read<CategoryBloc>();
-    categoryBloc.add(CategoryLoadAllCategoriesEvent());
-    _titleController = TextEditingController();
-    _descriptionController = TextEditingController();
+    _controller = NewTaskController(
+      taskBloc: context.read<TaskBloc>(),
+    );
+    _categoryBloc = context.read<CategoryBloc>();
+    _categoryBloc.add(CategoryLoadAllCategoriesEvent());
+    _controller.addListener(_onControllerChanged);
   }
 
-  void _presentDatePicker() async {
-    final now = DateTime.now();
-    final firtsDate = DateTime(now.year - 2, now.month, now.day);
-    final lastDate = DateTime(now.year + 2, now.month, now.day);
+  @override
+  void dispose() {
+    _controller.removeListener(_onControllerChanged);
+    _controller.dispose();
+    super.dispose();
+  }
 
-    final pickedDate = await showDatePicker(
-      context: context,
-      initialDate: now,
-      firstDate: firtsDate,
-      lastDate: lastDate,
-    );
-
-    setState(() {
-      _selectedDate = pickedDate;
-    });
+  void _onControllerChanged() {
+    setState(() {});
   }
 
   void _onPressCreate() async {
-    final isValidForm = _formKey.currentState!.validate();
-
-    if (!isValidForm) {
-      return;
-    }
-    _formKey.currentState!.save();
-
-    if (_selectedDate == null) {
+    if (!_controller.hasSelectedDate()) {
       showMyDialog(
         context,
         'Opss...',
@@ -81,7 +55,7 @@ class _CreateNewTaskScreenState extends State<CreateNewTaskScreen> {
       return;
     }
 
-    if (_selectCategory == null) {
+    if (!_controller.hasSelectedCategory()) {
       showMyDialog(
         context,
         'Opss...',
@@ -90,16 +64,7 @@ class _CreateNewTaskScreenState extends State<CreateNewTaskScreen> {
       return;
     }
 
-    taskBloc.add(
-      TaskCreateNewTaskEvent(
-        _inputTitle,
-        _inputDescription,
-        _selectedDate!,
-        _selectStatus,
-        _selectCategory!,
-        _selectedMedia,
-      ),
-    );
+    _controller.createTask();
 
     showMainSnackBar(
       context,
@@ -107,15 +72,8 @@ class _CreateNewTaskScreenState extends State<CreateNewTaskScreen> {
     );
 
     await Future.delayed(Duration(milliseconds: 300));
-    taskBloc.add(TaskLoadAllTasksEvent());
-    setState(() {
-      _titleController.clear();
-      _descriptionController.clear();
-      _selectedDate = null;
-      _selectStatus = statusList[0];
-      _selectCategory = null;
-      _selectedMedia = null;
-    });
+    _controller.loadAllTasks();
+    _controller.resetForm();
   }
 
   @override
@@ -136,15 +94,14 @@ class _CreateNewTaskScreenState extends State<CreateNewTaskScreen> {
             child: Column(
               children: [
                 Form(
-                  key: _formKey,
+                  key: _controller.formKey,
                   child: Column(
                     children: [
-
                       Card(
                         child: Padding(
                           padding: const EdgeInsets.all(8.0),
                           child: TextFormField(
-                            controller: _titleController,
+                            controller: _controller.titleController,
                             decoration: InputDecoration(
                               labelText: 'Title',
                               border: InputBorder.none,
@@ -156,16 +113,9 @@ class _CreateNewTaskScreenState extends State<CreateNewTaskScreen> {
                             autocorrect: false,
                             textCapitalization:
                                 TextCapitalization.none,
-                            validator: (value) {
-                              if (value == null ||
-                                  value.trim().isEmpty) {
-                                return 'Please enter at least one letter.';
-                              }
-                              return null;
-                            },
-                            onSaved: (newValue) {
-                              _inputTitle = newValue!;
-                            },
+                            validator: _controller.validateTitle,
+                            onSaved: (value) =>
+                                _controller.setTitle(value!),
                           ),
                         ),
                       ),
@@ -173,18 +123,15 @@ class _CreateNewTaskScreenState extends State<CreateNewTaskScreen> {
                       Row(
                         children: [
                           DropdownButton(
-                            value: _selectStatus,
-                            items: statusList.map((status) {
+                            value: _controller.selectStatus,
+                            items: TaskStatus.values.map((status) {
                               return DropdownMenuItem(
-                                value: status,
-                                child: Text(status),
+                                value: status.label,
+                                child: Text(status.label),
                               );
                             }).toList(),
-                            onChanged: (value) {
-                              setState(() {
-                                _selectStatus = value!;
-                              });
-                            },
+                            onChanged: (value) =>
+                                _controller.setStatus(value!),
                           ),
                           Expanded(
                             child: Row(
@@ -194,14 +141,15 @@ class _CreateNewTaskScreenState extends State<CreateNewTaskScreen> {
                                   CrossAxisAlignment.center,
                               children: [
                                 Text(
-                                  _selectedDate == null
+                                  _controller.selectedDate == null
                                       ? 'No date selected'
-                                      : formatter.format(
-                                          _selectedDate!,
+                                      : _controller.formatter.format(
+                                          _controller.selectedDate!,
                                         ),
                                 ),
                                 IconButton(
-                                  onPressed: _presentDatePicker,
+                                  onPressed: () => _controller
+                                      .presentDatePicker(context),
                                   icon: Icon(Icons.calendar_month),
                                 ),
                               ],
@@ -215,31 +163,26 @@ class _CreateNewTaskScreenState extends State<CreateNewTaskScreen> {
                             MainAxisAlignment.spaceBetween,
                         children: [
                           Text('Select your category:'),
-
                           BlocBuilder<CategoryBloc, CategoryState>(
                             builder: (context, state) {
                               if (state is CategoryLoadedListState) {
                                 final categoryList =
                                     state.categoryList;
                                 if (categoryList.isNotEmpty) {
-                                  _selectCategory ??= categoryList.first.id;
-
+                                  _controller.selectCategory ??=
+                                      categoryList.first.id;
                                   return DropdownButton(
-                                    value: _selectCategory,
+                                    value: _controller.selectCategory,
                                     items: categoryList.map((item) {
-                                      final categoryId = item.id;
-                                      final categoryName =
-                                          item.categoryName;
                                       return DropdownMenuItem(
-                                        value: categoryId,
-                                        child: Text(categoryName),
+                                        value: item.id,
+                                        child: Text(
+                                          item.categoryName,
+                                        ),
                                       );
                                     }).toList(),
-                                    onChanged: (value) {
-                                      setState(() {
-                                        _selectCategory = value!;
-                                      });
-                                    },
+                                    onChanged: (value) => _controller
+                                        .setCategory(value),
                                   );
                                 }
                               }
@@ -255,14 +198,14 @@ class _CreateNewTaskScreenState extends State<CreateNewTaskScreen> {
                         child: Padding(
                           padding: const EdgeInsets.all(8.0),
                           child: TextFormField(
-                            controller: _descriptionController,
+                            controller:
+                                _controller.descriptionController,
                             textAlignVertical: TextAlignVertical.top,
                             textAlign: TextAlign.left,
                             minLines: 8,
                             maxLines: null,
                             decoration: InputDecoration(
                               labelText: 'Description',
-
                               border: InputBorder.none,
                               contentPadding: EdgeInsets.symmetric(
                                 horizontal: 8,
@@ -272,17 +215,10 @@ class _CreateNewTaskScreenState extends State<CreateNewTaskScreen> {
                             autocorrect: false,
                             textCapitalization:
                                 TextCapitalization.none,
-
-                            validator: (value) {
-                              if (value == null ||
-                                  value.trim().isEmpty) {
-                                return 'Please enter at least one letter.';
-                              }
-                              return null;
-                            },
-                            onSaved: (newValue) {
-                              _inputDescription = newValue!;
-                            },
+                            validator:
+                                _controller.validateDescription,
+                            onSaved: (value) =>
+                                _controller.setDescription(value!),
                           ),
                         ),
                       ),
@@ -290,17 +226,14 @@ class _CreateNewTaskScreenState extends State<CreateNewTaskScreen> {
                       SizedBox(height: 10),
 
                       UserImagePicker(
-                        onPickImage: (image) {
-                          _selectedMedia = image;
-                        },
+                        onPickImage: (image) =>
+                            _controller.setMedia(image),
                       ),
 
                       SizedBox(height: 20),
-
+                      
                       ElevatedButton(
-                        onPressed: () {
-                          _onPressCreate();
-                        },
+                        onPressed: _onPressCreate,
                         style: ElevatedButton.styleFrom(
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(20),

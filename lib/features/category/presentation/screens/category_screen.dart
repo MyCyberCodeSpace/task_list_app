@@ -40,6 +40,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
         child: Column(
           children: [
             Spacer(),
+            
             Card(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
               child: SizedBox(
@@ -48,7 +49,9 @@ class _CategoryScreenState extends State<CategoryScreen> {
                 child: CategoryList(),
               ),
             ),
+            
             SizedBox(height: 20),
+
             ElevatedButton(
               onPressed: () {
                 controller.onPressedCreate(context);
@@ -59,7 +62,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
                 ),
               ),
               child: Text('Create'),
-            ),
+            ), 
             SizedBox(height: 20),
           ],
         ),

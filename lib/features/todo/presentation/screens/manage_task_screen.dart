@@ -1,99 +1,60 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:intl/intl.dart';
 import 'package:task_list_app/core/ui_helpers/main_snackbar_helper.dart';
 import 'package:task_list_app/core/widgets/main_circular_progress.dart';
 import 'package:task_list_app/features/category/presentation/bloc/category_bloc.dart';
 import 'package:task_list_app/features/category/presentation/bloc/category_state.dart';
 import 'package:task_list_app/features/todo/presentation/bloc/task_bloc.dart';
-import 'package:task_list_app/features/todo/presentation/bloc/task_event.dart';
 import 'package:task_list_app/features/todo/presentation/bloc/task_state.dart';
-import 'package:task_list_app/features/todo/data/status_data.dart';
+import 'package:task_list_app/features/todo/domain/enum/task_status_enum.dart';
 import 'package:task_list_app/features/todo/domain/model/todo_model.dart';
 import 'package:task_list_app/core/ui_helpers/main_alert_dialog.dart';
 import 'package:task_list_app/core/widgets/user_media.dart';
+import 'package:task_list_app/features/todo/presentation/controllers/manage_task_controller.dart';
 
-final formatter = DateFormat.yMd();
 
 class ManipuleTaskScreen extends StatefulWidget {
   final TodoModel task;
   const ManipuleTaskScreen({super.key, required this.task});
 
   @override
-  State<ManipuleTaskScreen> createState() =>
-      _CreateNewTaskScreenState();
+  State<ManipuleTaskScreen> createState() => _CreateNewTaskScreenState();
 }
 
 class _CreateNewTaskScreenState extends State<ManipuleTaskScreen> {
-  late final TaskBloc taskBloc;
-  final _formKey = GlobalKey<FormState>();
-  var _inputTitle = '';
-  var _inputDescription = '';
-  String _selectStatus = statusList[0];
-  String _selectCategory = '';
-  DateTime? _selectedDate;
-  File? _selectedMedia;
-  String _mediaUrl = '';
+  late final ManageTaskController _controller;
 
   @override
   void initState() {
     super.initState();
-    taskBloc = context.read<TaskBloc>();
-    _inputTitle = widget.task.title;
-    _inputDescription = widget.task.description;
-    _selectStatus = widget.task.status;
-    _selectCategory = widget.task.categoryId;
-    _selectedDate = widget.task.dueDate;
-    _mediaUrl = widget.task.mediaUrl;
-  }
-
-  void _presentDatePicker() async {
-    final now = DateTime.now();
-    final firtsDate = DateTime(now.year - 2, now.month, now.day);
-    final lastDate = DateTime(now.year + 2, now.month, now.day);
-
-    final pickedDate = await showDatePicker(
-      context: context,
-      initialDate: now,
-      firstDate: firtsDate,
-      lastDate: lastDate,
+    _controller = ManageTaskController(
+      taskBloc: context.read<TaskBloc>(),
+      task: widget.task,
     );
-
-    setState(() {
-      _selectedDate = pickedDate;
-    });
+    _controller.addListener(_onControllerChanged);
   }
 
-  void _onPressUpdate() async {
-    final isValidForm = _formKey.currentState!.validate();
+  @override
+  void dispose() {
+    _controller.removeListener(_onControllerChanged);
+    _controller.dispose();
+    super.dispose();
+  }
 
-    if (!isValidForm) {
-      return;
-    }
-    _formKey.currentState!.save();
+  void _onControllerChanged() {
+    setState(() {});
+  }
 
-    if (_selectedDate == null) {
+  void _onPressUpdate() {
+    if (!_controller.hasSelectedDate()) {
       showMyDialog(context, 'Opss...', 'Please select a date');
       return;
     }
-
-    taskBloc.add(
-      TaskUpdateTaskEvent(
-        id: widget.task.id,
-        title: _inputTitle,
-        description: _inputDescription,
-        dueDate: _selectedDate!,
-        status: _selectStatus,
-        categoryId: _selectCategory,
-        mediaUrl: widget.task.mediaUrl,
-        mediaFile: _selectedMedia,
-      ),
-    );
+    _controller.updateTask();
   }
 
   void _onPressDeleteItem() {
-    taskBloc.add(TaskDeleteTasksEvent(widget.task));
+    _controller.deleteTask();
     Navigator.of(context).pop();
   }
 
@@ -108,7 +69,6 @@ class _CreateNewTaskScreenState extends State<ManipuleTaskScreen> {
           showMyDialog(context, 'Oppss...', state.erroMessage);
         }
       },
-
       builder: (context, state) {
         if (state is TaskLoadingState) {
           return Scaffold(
@@ -125,78 +85,54 @@ class _CreateNewTaskScreenState extends State<ManipuleTaskScreen> {
                 child: Column(
                   children: [
                     Form(
-                      key: _formKey,
+                      key: _controller.formKey,
                       child: Column(
                         children: [
-                          // ##############
-                          // TITLE
+
                           Card(
                             child: Padding(
                               padding: const EdgeInsets.all(8.0),
                               child: TextFormField(
-                                initialValue: _inputTitle,
+                                initialValue: _controller.inputTitle,
                                 decoration: InputDecoration(
                                   labelText: 'Title',
                                   border: InputBorder.none,
-                                  contentPadding:
-                                      EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                      ),
+                                  contentPadding: EdgeInsets.symmetric(horizontal: 8),
                                 ),
                                 keyboardType: TextInputType.text,
                                 autocorrect: false,
-                                textCapitalization:
-                                    TextCapitalization.none,
-                                validator: (value) {
-                                  if (value == null ||
-                                      value.trim().isEmpty) {
-                                    return 'Please enter at least one letter.';
-                                  }
-                                  return null;
-                                },
-                                onSaved: (newValue) {
-                                  _inputTitle = newValue!;
-                                },
+                                textCapitalization: TextCapitalization.none,
+                                validator: _controller.validateTitle,
+                                onSaved: (value) => _controller.setTitle(value!),
                               ),
                             ),
                           ),
-                          // ##############
-                          // SELECTIONS
+
                           Row(
                             children: [
                               DropdownButton(
-                                value: _selectStatus,
-                                items: statusList.map((status) {
+                                value: _controller.selectStatus,
+                                items: TaskStatus.values.map((status) {
                                   return DropdownMenuItem(
                                     value: status,
-                                    child: Text(status),
+                                    child: Text(status.label),
                                   );
                                 }).toList(),
-                                onChanged: (value) {
-                                  setState(() {
-                                    _selectStatus = value!;
-                                  });
-                                },
+                                onChanged: (value) => _controller.setStatus(value!),
                               ),
                               Expanded(
                                 child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.end,
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.center,
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
                                   children: [
                                     Text(
-                                      _selectedDate == null
+                                      _controller.selectedDate == null
                                           ? 'No date selected'
-                                          : formatter.format(
-                                              _selectedDate!,
-                                            ),
+                                          : _controller.formatter.format(_controller.selectedDate!),
                                     ),
                                     IconButton(
-                                      onPressed: _presentDatePicker,
-                                      icon: Icon(
-                                        Icons.calendar_month,
-                                      ),
+                                      onPressed: () => _controller.presentDatePicker(context),
+                                      icon: Icon(Icons.calendar_month),
                                     ),
                                   ],
                                 ),
@@ -204,43 +140,24 @@ class _CreateNewTaskScreenState extends State<ManipuleTaskScreen> {
                             ],
                           ),
 
-                          // ##############
-                          // CATEGORY
                           Row(
-                            mainAxisAlignment:
-                                MainAxisAlignment.spaceBetween,
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text('Select your category:'),
-
-                              BlocBuilder<
-                                CategoryBloc,
-                                CategoryState
-                              >(
+                              BlocBuilder<CategoryBloc, CategoryState>(
                                 builder: (context, state) {
-                                  if (state
-                                      is CategoryLoadedListState) {
-                                    final categoryList =
-                                        state.categoryList;
-
+                                  if (state is CategoryLoadedListState) {
+                                    final categoryList = state.categoryList;
                                     if (categoryList.isNotEmpty) {
                                       return DropdownButton(
-                                        value: _selectCategory,
-                                        items: categoryList.map((
-                                          item,
-                                        ) {
-                                          final categoryId = item.id;
-                                          final categoryName =
-                                              item.categoryName;
+                                        value: _controller.selectCategory,
+                                        items: categoryList.map((item) {
                                           return DropdownMenuItem(
-                                            value: categoryId,
-                                            child: Text(categoryName),
+                                            value: item.id,
+                                            child: Text(item.categoryName),
                                           );
                                         }).toList(),
-                                        onChanged: (value) {
-                                          setState(() {
-                                            _selectCategory = value!;
-                                          });
-                                        },
+                                        onChanged: (value) => _controller.setCategory(value!),
                                       );
                                     }
                                   }
@@ -250,86 +167,58 @@ class _CreateNewTaskScreenState extends State<ManipuleTaskScreen> {
                             ],
                           ),
 
-                          // ##############
-                          // DESCRIPTION
                           SizedBox(height: 10),
+
                           Card(
                             child: Padding(
                               padding: const EdgeInsets.all(8.0),
                               child: TextFormField(
-                                initialValue: _inputDescription,
-                                textAlignVertical:
-                                    TextAlignVertical.top,
+                                initialValue: _controller.inputDescription,
+                                textAlignVertical: TextAlignVertical.top,
                                 textAlign: TextAlign.left,
                                 minLines: 8,
                                 maxLines: null,
                                 decoration: InputDecoration(
                                   labelText: 'Description',
-
                                   border: InputBorder.none,
-                                  contentPadding:
-                                      EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                      ),
+                                  contentPadding: EdgeInsets.symmetric(horizontal: 8),
                                 ),
                                 keyboardType: TextInputType.multiline,
                                 autocorrect: false,
-                                textCapitalization:
-                                    TextCapitalization.none,
-
-                                validator: (value) {
-                                  if (value == null ||
-                                      value.trim().isEmpty) {
-                                    return 'Please enter at least one letter.';
-                                  }
-                                  return null;
-                                },
-                                onSaved: (newValue) {
-                                  _inputDescription = newValue!;
-                                },
+                                textCapitalization: TextCapitalization.none,
+                                validator: _controller.validateDescription,
+                                onSaved: (value) => _controller.setDescription(value!),
                               ),
                             ),
                           ),
 
-                          // ##############
-                          // MEDIA
                           SizedBox(height: 10),
+
                           UserImagePicker(
-                            onPickImage: (image) {
-                              _selectedMedia = image;
-                            },
-                            mediaUrl: _mediaUrl,
+                            onPickImage: (image) => _controller.setMedia(image),
+                            mediaUrl: _controller.mediaUrl,
                           ),
 
-                          // ##############
-                          // BUTTOM
                           SizedBox(height: 20),
+                          
                           Row(
-                            mainAxisAlignment:
-                                MainAxisAlignment.center,
-
+                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               ElevatedButton(
-                                onPressed: () {
-                                  _onPressDeleteItem();
-                                },
+                                onPressed: _onPressDeleteItem,
                                 style: ElevatedButton.styleFrom(
                                   shape: RoundedRectangleBorder(
-                                    borderRadius:
-                                        BorderRadius.circular(20),
+                                    borderRadius: BorderRadius.circular(20),
                                   ),
                                 ),
                                 child: Text('Delete'),
                               ),
                               SizedBox(width: 20),
                               ElevatedButton(
-                                onPressed: () {
-                                  _onPressUpdate();
-                                },
+                                onPressed: _onPressUpdate,
                                 style: ElevatedButton.styleFrom(
                                   shape: RoundedRectangleBorder(
-                                    borderRadius:
-                                        BorderRadius.circular(20),
+                                    borderRadius: BorderRadius.circular(20),
                                   ),
                                 ),
                                 child: Text('Update'),
